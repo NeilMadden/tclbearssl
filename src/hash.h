@@ -30,9 +30,5 @@
 
 #include <tcl.h>
 
-int sha224_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
-int sha256_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
-int sha384_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
-int sha512_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
-
+int hash_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
 int hmac_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);

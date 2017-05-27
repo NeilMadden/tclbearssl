@@ -45,10 +45,10 @@ Tclbearssl_Init(Tcl_Interp *interp)
     }
 
     /* Register commands */
-    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha224", sha224_cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha256", sha256_cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha384", sha384_cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha512", sha512_cmd, NULL, NULL);
+    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha224", hash_cmd, (ClientData) &br_sha224_vtable, NULL);
+    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha256", hash_cmd, (ClientData) &br_sha256_vtable, NULL);
+    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha384", hash_cmd, (ClientData) &br_sha384_vtable, NULL);
+    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha512", hash_cmd, (ClientData) &br_sha512_vtable, NULL);
     Tcl_CreateObjCommand(interp, PACKAGE_NAME "::hmac", hmac_cmd, NULL, NULL);
 
 #if 0

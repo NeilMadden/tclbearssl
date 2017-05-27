@@ -28,145 +28,110 @@
 
 #define UNUSED(x) (void)(x)
 
+static int constant_time_compare(unsigned char *a, unsigned char *b, size_t length);
+
 /*
- * bearssl sha224 data ?data...?
+ * bearssl (sha224|sha256|sha384|sha512) data ?data ...?
  *
- *      Calculates the SHA-224 hash of (the concatenation of) the input arguments. Both inputs
- *      and outputs are byte array objects.
+ *      Calculates the given hash of the given input arguments. Both inputs and outputs are
+ *      byte array objects. Expects the clientData to be a br_hash_class pointer.
  */
-int sha224_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+int hash_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    UNUSED(clientData);
-    br_sha224_context ctx;
-    int length;
-    int i;
+    const br_hash_class *hash = (const br_hash_class *) clientData;
+    br_hash_compat_context ctx;
+    unsigned char output[br_sha512_SIZE]; // Allocate to largest possible size for simplicity
     unsigned char *data;
-    unsigned char hash[br_sha224_SIZE];
+    size_t output_size;
+    int i, length;
 
     if (objc < 2) {
-        Tcl_SetObjResult(interp, 
-                Tcl_NewStringObj("wrong # args: should be \"bearssl sha224 value ?value...?\"", -1));
+        Tcl_WrongNumArgs(interp, 1, objv, "value ?value...?");
         return TCL_ERROR;
     }
 
-    br_sha224_init(&ctx);
+    hash->init(&ctx.vtable);
     for (i = 1; i < objc; ++i) {
         data = Tcl_GetByteArrayFromObj(objv[i], &length);
-        br_sha224_update(&ctx, data, length);
+        hash->update(&ctx.vtable, data, length);
     }
-    br_sha224_out(&ctx, hash);
+    hash->out(&ctx.vtable, output);
+    output_size = (hash->desc >> BR_HASHDESC_OUT_OFF) & BR_HASHDESC_OUT_MASK;
 
-    Tcl_SetObjResult(interp, Tcl_NewByteArrayObj(hash, br_sha224_SIZE));
-    return TCL_OK;
-}
-
-/*
- * bearssl sha256 data ?data...?
- *
- *      Calculates the SHA-256 hash of (the concatenation of) the input arguments. Both inputs
- *      and outputs are byte array objects.
- */
-int sha256_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
-{
-    UNUSED(clientData);
-    br_sha256_context ctx;
-    int length;
-    int i;
-    unsigned char *data;
-    unsigned char hash[br_sha256_SIZE];
-
-    if (objc < 2) {
-        Tcl_SetObjResult(interp, 
-                Tcl_NewStringObj("wrong # args: should be \"bearssl sha256 value ?value...?\"", -1));
-        return TCL_ERROR;
-    }
-
-    br_sha256_init(&ctx);
-    for (i = 1; i < objc; ++i) {
-        data = Tcl_GetByteArrayFromObj(objv[i], &length);
-        br_sha256_update(&ctx, data, length);
-    }
-    br_sha256_out(&ctx, hash);
-
-    Tcl_SetObjResult(interp, Tcl_NewByteArrayObj(hash, br_sha256_SIZE));
-    return TCL_OK;
-}
-/*
- * bearssl sha384 data ?data...?
- *
- *      Calculates the SHA-384 hash of (the concatenation of) the input arguments. Both inputs
- *      and outputs are byte array objects.
- */
-int sha384_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
-{
-    UNUSED(clientData);
-    br_sha384_context ctx;
-    int length;
-    int i;
-    unsigned char *data;
-    unsigned char hash[br_sha384_SIZE];
-
-    if (objc < 2) {
-        Tcl_SetObjResult(interp, 
-                Tcl_NewStringObj("wrong # args: should be \"bearssl sha384 value ?value...?\"", -1));
-        return TCL_ERROR;
-    }
-
-    br_sha384_init(&ctx);
-    for (i = 1; i < objc; ++i) {
-        data = Tcl_GetByteArrayFromObj(objv[i], &length);
-        br_sha384_update(&ctx, data, length);
-    }
-    br_sha384_out(&ctx, hash);
-
-    Tcl_SetObjResult(interp, Tcl_NewByteArrayObj(hash, br_sha384_SIZE));
-    return TCL_OK;
-}
-
-
-
-/*
- * bearssl sha512 data ?data...?
- *
- *      Calculates the SHA-512 hash of (the concatenation of) the input arguments. Both inputs
- *      and outputs are byte array objects.
- */
-int sha512_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
-{
-    UNUSED(clientData);
-    br_sha512_context ctx;
-    int length;
-    int i;
-    unsigned char *data;
-    unsigned char hash[br_sha512_SIZE];
-
-    if (objc < 2) {
-        Tcl_SetObjResult(interp, 
-                Tcl_NewStringObj("wrong # args: should be \"bearssl sha512 value ?value...?\"", -1));
-        return TCL_ERROR;
-    }
-
-    br_sha512_init(&ctx);
-    for (i = 1; i < objc; ++i) {
-        data = Tcl_GetByteArrayFromObj(objv[i], &length);
-        br_sha512_update(&ctx, data, length);
-    }
-    br_sha512_out(&ctx, hash);
-
-    Tcl_SetObjResult(interp, Tcl_NewByteArrayObj(hash, br_sha512_SIZE));
+    Tcl_SetObjResult(interp, Tcl_NewByteArrayObj(output, output_size));
     return TCL_OK;
 }
 
 int hmac_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     UNUSED(clientData);
-    UNUSED(objv);
+    br_hmac_key_context key_ctx;
+    br_hmac_context ctx;
+    unsigned char* key;
+    unsigned char* data;
+    unsigned char* expected = NULL;
+    int key_length, data_length, expected_length;
+    int output_size;
+    unsigned char output[br_sha512_SIZE]; // Allocate for largest possible output for simplicity
 
-    if (objc < 4) {
-        Tcl_SetObjResult(interp, 
-                Tcl_NewStringObj("wrong # args: should be \"bearssl hmac (sha224|sha256|sha384|sha512) key data ?data...?\"", -1));
+    static const struct {
+        char *digest_name;
+        const br_hash_class *digest_vtable;
+    } options[] = {
+        { "sha224", &br_sha224_vtable },
+        { "sha256", &br_sha256_vtable },
+        { "sha384", &br_sha384_vtable },
+        { "sha512", &br_sha512_vtable },
+        { NULL, NULL }
+    };
+    int index;
+    int comparison_result;
+
+    if (objc < 4 || objc > 5) {
+        Tcl_WrongNumArgs(interp, 1, objv, "(sha224|sha256|sha384|sha512) key value ?expected?");
         return TCL_ERROR;
     }
 
+    if (Tcl_GetIndexFromObjStruct(interp, objv[1], options, sizeof(options[0]), "digest", 0, &index) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    key = Tcl_GetByteArrayFromObj(objv[2], &key_length);
+    data = Tcl_GetByteArrayFromObj(objv[3], &data_length);
+
+    br_hmac_key_init(&key_ctx, options[index].digest_vtable, key, key_length);
+    br_hmac_init(&ctx, &key_ctx, 0); // 0 = natural output length of the underlying hash
+    br_hmac_update(&ctx, data, data_length);
+    br_hmac_out(&ctx, &output);
+    output_size = br_hmac_size(&ctx);
+
+    if (objc == 5) {
+        expected = Tcl_GetByteArrayFromObj(objv[4], &expected_length);
+        if (expected_length > output_size) {
+            Tcl_SetObjResult(interp, Tcl_NewStringObj("expected value is too big for hash size", -1));
+            return TCL_ERROR;
+        }
+        comparison_result = constant_time_compare(output, expected, expected_length);
+        Tcl_SetObjResult(interp, Tcl_NewBooleanObj(comparison_result));
+    } else {
+        Tcl_SetObjResult(interp, Tcl_NewByteArrayObj(output, output_size));
+    }
+
     return TCL_OK;
+}
+
+/**
+ * Implements a constant-time comparison of two byte arrays that must both be >= length in size.
+ * This is very important to avoid timing attacks on HMAC comparisons.
+ */
+static int constant_time_compare(unsigned char *a, unsigned char *b, size_t length)
+{
+    int result = 0;
+    size_t i;
+
+    for (i = 0; i < length; ++i) {
+        result |= a[i] ^ b[i];
+    }
+
+    return 1 & ((result - 1) >> 8);
 }
