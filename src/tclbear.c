@@ -26,6 +26,7 @@
 #include <bearssl.h>
 
 #include "hash.h"
+#include "rand.h"
 
 #define PACKAGE_NAME 	"bearssl"
 #define PACKAGE_VERSION "0.4.0"
@@ -34,6 +35,7 @@ int DLLEXPORT
 Tclbearssl_Init(Tcl_Interp *interp)
 {
     Tcl_Namespace *namespace;
+    Tcl_Command ensemble;
 
     if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL) {
         return TCL_ERROR;
@@ -45,21 +47,21 @@ Tclbearssl_Init(Tcl_Interp *interp)
     }
 
     /* Register commands */
+    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::md5", hash_cmd, (ClientData) &br_md5_vtable, NULL);
+    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha1", hash_cmd, (ClientData) &br_sha1_vtable, NULL);
     Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha224", hash_cmd, (ClientData) &br_sha224_vtable, NULL);
     Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha256", hash_cmd, (ClientData) &br_sha256_vtable, NULL);
     Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha384", hash_cmd, (ClientData) &br_sha384_vtable, NULL);
     Tcl_CreateObjCommand(interp, PACKAGE_NAME "::sha512", hash_cmd, (ClientData) &br_sha512_vtable, NULL);
     Tcl_CreateObjCommand(interp, PACKAGE_NAME "::hmac", hmac_cmd, NULL, NULL);
 
-#if 0
+    Tcl_CreateObjCommand(interp, PACKAGE_NAME "::rand", rand_cmd, NULL, NULL);
+
     if (Tcl_Export(interp, namespace, "*", 1) != TCL_OK) {
         return TCL_ERROR;
     }
 
-    if (Tcl_CreateEnsemble(interp, PACKAGE_NAME, namespace, 0) != TCL_OK) {
-        return TCL_ERROR;
-    }
-#endif
+    ensemble = Tcl_CreateEnsemble(interp, "::" PACKAGE_NAME, namespace, 0);
 
     if (Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION) != TCL_OK) {
         return TCL_ERROR;

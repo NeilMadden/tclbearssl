@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Neil Madden.
+ * Copyright (c) 2018 Neil Madden.
  *
  * Permission is hereby granted, free of charge, to any person obtaining 
  * a copy of this software and associated documentation files (the
@@ -22,14 +22,7 @@
  * SOFTWARE.
  */
 
-/*
- * hash.h --
- *
- *      Declarations of hash and HMAC related commands.
- */
-
 #include <tcl.h>
 
-int hash_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
-int hmac_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
-int hkdf_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
+int rand_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]);
+

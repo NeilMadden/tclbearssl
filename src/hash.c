@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Neil Madden.
+ * Copyright (c) 2017-2018 Neil Madden.
  *
  * Permission is hereby granted, free of charge, to any person obtaining 
  * a copy of this software and associated documentation files (the
@@ -25,13 +25,14 @@
 #include "hash.h"
 #include <bearssl_hash.h>
 #include <bearssl_hmac.h>
+#include <bearssl_kdf.h>
 
 #define UNUSED(x) (void)(x)
 
 static int constant_time_compare(unsigned char *a, unsigned char *b, size_t length);
 
 /*
- * bearssl (sha224|sha256|sha384|sha512) data ?data ...?
+ * bearssl (md5|sha1|sha224|sha256|sha384|sha512) data ?data ...?
  *
  *      Calculates the given hash of the given input arguments. Both inputs and outputs are
  *      byte array objects. Expects the clientData to be a br_hash_class pointer.
@@ -78,6 +79,8 @@ int hmac_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const
         char *digest_name;
         const br_hash_class *digest_vtable;
     } options[] = {
+        { "md5",    &br_md5_vtable },
+        { "sha1",   &br_sha1_vtable },
         { "sha224", &br_sha224_vtable },
         { "sha256", &br_sha256_vtable },
         { "sha384", &br_sha384_vtable },
@@ -88,7 +91,7 @@ int hmac_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const
     int comparison_result;
 
     if (objc < 4 || objc > 5) {
-        Tcl_WrongNumArgs(interp, 1, objv, "(sha224|sha256|sha384|sha512) key value ?expected?");
+        Tcl_WrongNumArgs(interp, 1, objv, "(md5|sha1|sha224|sha256|sha384|sha512) key value ?expected?");
         return TCL_ERROR;
     }
 
@@ -120,13 +123,14 @@ int hmac_cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const
     return TCL_OK;
 }
 
+
 /**
  * Implements a constant-time comparison of two byte arrays that must both be >= length in size.
  * This is very important to avoid timing attacks on HMAC comparisons.
  */
 static int constant_time_compare(unsigned char *a, unsigned char *b, size_t length)
 {
-    int result = 0;
+    unsigned char result = 0;
     size_t i;
 
     for (i = 0; i < length; ++i) {
